@@ -111,7 +111,7 @@ jobs:
           done < filelist
 
       - name: Upload NDJSON outputs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: processed-dataset-json
           path: ./data/*.ndjson
