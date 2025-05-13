@@ -55,4 +55,4 @@ jobs:
     
       - name: Run 360i Python script (simulates chaining)
         run: |
-          python github2dsj/github2dsj.py ie.json
+          python github2dsj/github2dsj.py ie.json --path ./data
