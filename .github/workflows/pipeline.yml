@@ -52,14 +52,38 @@ jobs:
         run: |
           echo "Contents of config.ini:"
           cat ./config/config.ini
-    
-      - name: Run github2dsj.py and set output path
-        id: github2dsj
-        run: |
-          OUTPUT=$(python github2dsj/github2dsj.py ie.json --path ./data)
-          echo "dataset_path=$OUTPUT" >> $GITHUB_OUTPUT
 
-      - name: Use dataset_path in dsjupversion.py
+      - name: Extract API URL from config.ini
+        id: extract_config
         run: |
-          echo "Upversioning ${{ steps.github2dsj.outputs.dataset_path }}"
-          python dsjupversion/dsjupversion.py -f "${{ steps.github2dsj.outputs.dataset_path }}"
+          USERNAME=$(grep '^gh_user_name' ./config/config.ini | cut -d '=' -f2 | xargs)
+          REPONAME=$(grep '^gh_repo_name' ./config/config.ini | cut -d '=' -f2 | xargs)
+          REPOPATH=$(grep '^gh_repo_path' ./config/config.ini | cut -d '=' -f2 | xargs)
+          API_URL="https://api.github.com/repos/$USERNAME/$REPONAME/contents/$REPOPATH"
+          echo "API_URL=$API_URL" >> $GITHUB_ENV
+
+      - name: Get list of JSON files from GitHub API
+        run: |
+          echo "Fetching file list from $API_URL"
+          curl -s -H "Authorization: token $ACCESS_TOKEN" "$API_URL" \
+            | jq -r '.[] | select(.name | endswith(".json")) | .name' > filelist
+
+          echo "Files to process:"
+          cat filelist
+
+      - name: Process Dataset-JSON files from filelist
+        run: |
+          while read file; do
+            echo "Processing $file"
+
+            # Step 1: Retrieve from GitHub
+            OUTPUT=$(python github2dsj/github2dsj.py "$file" --path ./data)
+            echo "Downloaded: $OUTPUT"
+
+            # Step 2: Upversion
+            OUTPUT=$(python dsjupversion/dsjupversion.py -f "$OUTPUT")
+            echo "Upversioned: $OUTPUT"
+
+            echo "Done with $file"
+            echo ""
+          done < filelist
