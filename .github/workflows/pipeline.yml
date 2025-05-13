@@ -26,8 +26,8 @@ jobs:
       - name: Prepare config.ini
         run: |
           cp ./config/config-template.ini ./config/config.ini
-          sed -i 's/your_github_token/${{ secrets.ACCESS_TOKEN }}/' config.ini
-          sed -i 's/your_path/data/' config.ini
+          sed -i "s|your_github_token|$ACCESS_TOKEN|" ./config/config.ini
+          sed -i "s|your_path|data|" ./config/config.ini
           echo "Configured config.ini"
 
       - name: Run 360i Python script (simulates chaining)
