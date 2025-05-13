@@ -79,7 +79,14 @@ jobs:
 
       - name: Process Dataset-JSON files from filelist
         run: |
+          SKIP_LIST="cm.json qs.json vs.json"
+         
           while read file; do
+            if echo "$SKIP_LIST" | grep -qw "$file"; then
+              echo "⏭️ Skipping $file (in skip list)"
+              continue
+            fi
+          
             echo "Processing $file"
 
             # Step 1: Retrieve from GitHub
