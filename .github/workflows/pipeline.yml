@@ -65,9 +65,14 @@ jobs:
       - name: Get list of JSON files from GitHub API
         run: |
           echo "Fetching file list from $API_URL"
-          curl -s -H "Authorization: token $ACCESS_TOKEN" "$API_URL" \
-            | jq -r '.[] | select(.name | endswith(".json")) | .name' > filelist
-
+          
+          RESPONSE=$(curl -s -H "Authorization: token $ACCESS_TOKEN" "$API_URL")
+          
+          echo "Raw API response (truncated):"
+          echo "$RESPONSE" | head -n 20
+          
+          echo "$RESPONSE" | jq -r '.[] | select(.type == "file" and .name | endswith(".json")) | .name' > filelist
+      
           echo "Files to process:"
           cat filelist
 
