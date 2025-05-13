@@ -79,7 +79,7 @@ jobs:
 
       - name: Process Dataset-JSON files from filelist
         run: |
-          SKIP_LIST="cm.json qs.json vs.json"
+          SKIP_LIST="cm.json lb.json qs.json vs.json"
          
           while read file; do
             if echo "$SKIP_LIST" | grep -qw "$file"; then
