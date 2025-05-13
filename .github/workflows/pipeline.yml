@@ -33,7 +33,7 @@ jobs:
       - name: Print config.ini (token masked)
         run: |
           echo "Contents of config.ini:"
-          cat config.ini
+          cat ./config/config.ini
     
       - name: Run 360i Python script (simulates chaining)
         run: |
