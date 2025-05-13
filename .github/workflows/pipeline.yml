@@ -69,7 +69,7 @@ jobs:
           RESPONSE=$(curl -s -H "Authorization: token $ACCESS_TOKEN" $API_URL)
           
           echo "Raw API response (truncated):"
-          echo "$RESPONSE" | head -n 20
+          echo "$RESPONSE"
           
           echo "$RESPONSE" | jq -r '.[] | select(.type == "file" and .name | endswith(".json")) | .name' > filelist
       
