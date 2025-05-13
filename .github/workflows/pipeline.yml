@@ -66,7 +66,7 @@ jobs:
         run: |
           echo "Fetching file list from $API_URL"
           
-          HTTP_STATUS=$(curl -s -o api_response.json -w "%{http_code}" \
+          HTTP_STATUS=$(curl -sL -o api_response.json -w "%{http_code}" \
             -H "Authorization: token $ACCESS_TOKEN" "$API_URL")
           
           echo "GitHub API returned status: $HTTP_STATUS"
