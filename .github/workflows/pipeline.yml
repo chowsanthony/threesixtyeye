@@ -1,0 +1,35 @@
+name: Demonstrate 360i Pipeline
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    env:
+      ACCESS_TOKEN: ${{ secrets.THREESIXTYEYE_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt || true  # assuming a requirements.txt exists
+
+      - name: Prepare config.ini
+        run: |
+          cp ./config/config-template.ini ./config/config.ini
+          sed -i 's/your_github_token/${{ secrets.ACCESS_TOKEN }}/' config.ini
+          sed -i 's/your_path/data/' config.ini
+          echo "Configured config.ini"
+
+      - name: Run 360i Python script (simulates chaining)
+        run: |
+          python github2dsj\github2dsj.py ie.json
