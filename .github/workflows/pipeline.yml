@@ -29,7 +29,7 @@ jobs:
           echo "gh_token = $ACCESS_TOKEN" >> ./config/config.ini
           echo "gh_user_name=alidootson" >> ./config/config.ini
           echo "gh_repo_name=UpdatedCDISCPilotData" >> ./config/config.ini
-          echo "gh_repo_path=UpdatedCDISCPilotData/CDASH/datasetjson" >> ./config/config.ini
+          echo "gh_repo_path=UpdatedCDISCPilotData/CDASH/datasetjson/" >> ./config/config.ini
 
           echo "" >> ./config/config.ini
           echo "[Study]" >> ./config/config.ini
