@@ -66,12 +66,10 @@ jobs:
         run: |
           echo "Fetching file list from $API_URL"
           
-          RESPONSE=$(curl -s -H "Authorization: token $ACCESS_TOKEN" $API_URL)
+          curl -s -H "Authorization: token $ACCESS_TOKEN" "$API_URL" > api_response.json
+          head -n 20 api_response.json || true
           
-          echo "Raw API response (truncated):"
-          echo "$RESPONSE"
-          
-          echo "$RESPONSE" | jq -r '.[] | select(.type == "file" and .name | endswith(".json")) | .name' > filelist
+          jq -r '.[] | select(.type == "file" and .name | endswith(".json")) | .name' api_response.json > filelist
       
           echo "Files to process:"
           cat filelist
