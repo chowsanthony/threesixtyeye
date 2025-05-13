@@ -79,24 +79,30 @@ jobs:
 
       - name: Process Dataset-JSON files from filelist
         run: |
-          SKIP_LIST="cm.json lb.json qs.json vs.json"
-         
+          SKIP_LIST="cm.json qs.json vs.json"
+      
           while read file; do
             if echo "$SKIP_LIST" | grep -qw "$file"; then
-              echo "⏭️ Skipping $file (in skip list)"
+              echo "Skipping $file (in skip list)"
               continue
             fi
-          
+      
             echo "Processing $file"
 
             # Step 1: Retrieve from GitHub
-            OUTPUT=$(python github2dsj/github2dsj.py "$file" --path ./data)
-            echo "Downloaded: $OUTPUT"
-
+            INPUT_PATH=$(python github2dsj/github2dsj.py "$file" --path ./data)
+            echo "Downloaded: $INPUT_PATH"
+      
             # Step 2: Upversion
-            OUTPUT=$(python dsjupversion/dsjupversion.py -f "$OUTPUT")
-            echo "Upversioned: $OUTPUT"
-
+            NDJSON_PATH=$(python dsjupversion/dsjupversion.py -f "$INPUT_PATH")
+            echo "Upversioned: $NDJSON_PATH"
+      
+            # Step 3: Validate
+            echo "Validating $NDJSON_PATH"
+            python dsjvalidate/dsjvalidate.py -f "$NDJSON_PATH"
+            echo "Validation completed"
+      
             echo "Done with $file"
             echo ""
           done < filelist
+
