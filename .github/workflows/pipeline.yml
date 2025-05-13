@@ -30,6 +30,11 @@ jobs:
           sed -i "s|your_path|data|" ./config/config.ini
           echo "Configured config.ini"
 
+      - name: Print config.ini (token masked)
+        run: |
+          echo "Contents of config.ini:"
+          cat config.ini
+    
       - name: Run 360i Python script (simulates chaining)
         run: |
           python github2dsj/github2dsj.py ie.json
