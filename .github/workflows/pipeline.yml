@@ -53,6 +53,13 @@ jobs:
           echo "Contents of config.ini:"
           cat ./config/config.ini
     
-      - name: Run 360i Python script (simulates chaining)
+      - name: Run github2dsj.py and set output path
+        id: github2dsj
         run: |
-          python github2dsj/github2dsj.py ie.json --path ./data
+          OUTPUT=$(python github2dsj/github2dsj.py ie.json --path ./data)
+          echo "dataset_path=$OUTPUT" >> $GITHUB_OUTPUT
+
+      - name: Use dataset_path in dsjupversion.py
+        run: |
+          echo "Upversioning ${{ steps.github2dsj.outputs.dataset_path }}"
+          python dsjupversion/dsjupversion.py -f "${{ steps.github2dsj.outputs.dataset_path }}"
