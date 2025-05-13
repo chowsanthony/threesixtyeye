@@ -110,3 +110,8 @@ jobs:
             echo ""
           done < filelist
 
+      - name: Upload NDJSON outputs
+        uses: actions/upload-artifact@v3
+        with:
+          name: processed-dataset-json
+          path: ./data/*.ndjson
