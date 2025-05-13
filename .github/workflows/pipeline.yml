@@ -21,14 +21,32 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt || true  # assuming a requirements.txt exists
+          pip install -r requirements.txt || true
 
-      - name: Prepare config.ini
+      - name: Create config.ini with token
         run: |
-          cp ./config/config-template.ini ./config/config.ini
-          sed -i "s|your_github_token|$ACCESS_TOKEN|" ./config/config.ini
-          sed -i "s|your_path|data|" ./config/config.ini
-          echo "Configured config.ini"
+          echo "[RawDataSource]" >> ./config/config.ini
+          echo "gh_token = $ACCESS_TOKEN" >> ./config/config.ini
+          echo "gh_user_name=alidootson" >> ./config/config.ini
+          echo "gh_repo_name=UpdatedCDISCPilotData" >> ./config/config.ini
+          echo "gh_repo_path=UpdatedCDISCPilotData/CDASH/datasetjson/" >> ./config/config.ini
+
+          echo "" >> ./config/config.ini
+          echo "[Study]" >> ./config/config.ini
+          echo "study_oid=360i-lzzt" >> ./config/config.ini
+
+          echo "" >> ./config/config.ini
+          echo "[Data]" >> ./config/config.ini
+          echo "data_path=./data" >> ./config/config.ini
+
+          echo "" >> ./config/config.ini
+          echo "[SourceSystem]" >> ./config/config.ini
+          echo "name=360i" >> ./config/config.ini
+          echo "version=0.0.1" >> ./config/config.ini
+
+          echo "" >> ./config/config.ini
+          echo "[Commands]" >> ./config/config.ini
+          echo "python=python3" >> ./config/config.ini
 
       - name: Print config.ini (token masked)
         run: |
