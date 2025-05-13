@@ -85,7 +85,7 @@ jobs:
             echo "Processing $file"
 
             # Step 1: Retrieve from GitHub
-            OUTPUT=$(python github2dsj/github2dsj.py "$file" --path ./data)
+            OUTPUT=$(python github2dsj/github2dsj.py "/$file" --path ./data)
             echo "Downloaded: $OUTPUT"
 
             # Step 2: Upversion
