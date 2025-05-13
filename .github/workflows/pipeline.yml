@@ -79,6 +79,11 @@ jobs:
           echo "Filelist:"
           cat filelist
 
+      - name: Clean ./data before processing
+        run: |
+          mkdir -p ./data
+          rm -f ./data/*.json ./data/*.ndjson
+
       - name: Process Dataset-JSON files from filelist
         run: |
           while read file; do
