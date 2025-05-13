@@ -70,8 +70,6 @@ jobs:
             -H "Authorization: token $ACCESS_TOKEN" "$API_URL")
       
           echo "GitHub API returned status: $HTTP_STATUS"
-          echo "First few lines of the response:"
-          head -n 20 api_response.json
       
           echo "Extracting .json filenames..."
           jq -r '.[] | select(.type == "file" and has("name") and (.name | endswith(".json"))) | .name' api_response.json > filelist
@@ -79,18 +77,13 @@ jobs:
           echo "Filelist:"
           cat filelist
 
-      - name: Clean ./data before processing
-        run: |
-          mkdir -p ./data
-          rm -f ./data/*.json ./data/*.ndjson
-
       - name: Process Dataset-JSON files from filelist
         run: |
           while read file; do
             echo "Processing $file"
 
             # Step 1: Retrieve from GitHub
-            OUTPUT=$(python github2dsj/github2dsj.py "/$file" --path ./)
+            OUTPUT=$(python github2dsj/github2dsj.py "$file" --path ./data)
             echo "Downloaded: $OUTPUT"
 
             # Step 2: Upversion
