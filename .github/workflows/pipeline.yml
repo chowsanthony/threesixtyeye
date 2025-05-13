@@ -68,13 +68,15 @@ jobs:
           
           HTTP_STATUS=$(curl -sL -o api_response.json -w "%{http_code}" \
             -H "Authorization: token $ACCESS_TOKEN" "$API_URL")
-          
+      
           echo "GitHub API returned status: $HTTP_STATUS"
-          cat api_response.json | head -n 20
-          
+          echo "First few lines of the response:"
+          head -n 20 api_response.json
+      
+          echo "Extracting .json filenames..."
           jq -r '.[] | select(.type == "file" and .name | endswith(".json")) | .name' api_response.json > filelist
       
-          echo "Files to process:"
+          echo "Filelist:"
           cat filelist
 
       - name: Process Dataset-JSON files from filelist
