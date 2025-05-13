@@ -45,6 +45,10 @@ jobs:
           echo "version=0.0.1" >> ./config/config.ini
 
           echo "" >> ./config/config.ini
+          echo "[LinkML]" >> ./config/config.ini
+          echo "ndjson_linkml_yaml=./dsjvalidate/dataset-ndjson.yaml" >> ./config/config.ini
+          
+          echo "" >> ./config/config.ini
           echo "[Commands]" >> ./config/config.ini
           echo "python=python3" >> ./config/config.ini
 
