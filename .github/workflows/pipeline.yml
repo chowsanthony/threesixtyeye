@@ -66,7 +66,7 @@ jobs:
         run: |
           echo "Fetching file list from $API_URL"
           
-          RESPONSE=$(curl -s -H "Authorization: token $ACCESS_TOKEN" "$API_URL")
+          RESPONSE=$(curl -s -H "Authorization: token $ACCESS_TOKEN" $API_URL)
           
           echo "Raw API response (truncated):"
           echo "$RESPONSE" | head -n 20
