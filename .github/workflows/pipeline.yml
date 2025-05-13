@@ -62,18 +62,6 @@ jobs:
           API_URL="https://api.github.com/repos/$USERNAME/$REPONAME/contents/$REPOPATH"
           echo "API_URL=$API_URL" >> $GITHUB_ENV
 
-      - name: Debug GitHub API direct
-        run: |
-          curl -s -D headers.txt -o api_response.json -L \
-            -H "Authorization: token $ACCESS_TOKEN" \
-            $API_URL
-      
-          echo "Response headers:"
-          cat headers.txt
-      
-          echo "Response content (first few lines):"
-          head -n 20 api_response.json
-
       - name: Get list of JSON files from GitHub API
         run: |
           echo "Fetching file list from $API_URL"
