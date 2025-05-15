@@ -113,7 +113,7 @@ jobs:
       - name: Download and extract CORE engine
         run: |
           curl -L -o core.zip https://github.com/cdisc-org/cdisc-rules-engine/releases/download/v0.10.0/core-ubuntu-latest.zip
-          unzip core.zip -d core
+          unzip core.zip -d ./
 
       - name: Validate NDJSON files
         run: |
