@@ -84,6 +84,7 @@ jobs:
       - name: Process Dataset-JSON files from filelist
         run: |
           SKIP_LIST="cm.json lb.json qs.json vs.json"
+          CORE_DP_ARGS=""
       
           while read file; do
             if echo "$SKIP_LIST" | grep -qw "$file"; then
@@ -102,13 +103,18 @@ jobs:
             echo "Upversioned: $NDJSON_PATH"
       
             # Step 3: Validate
-            echo "Validating $NDJSON_PATH"
-            python dsjvalidate/dsjvalidate.py -f "$NDJSON_PATH"
+            echo "Validating $NDJSON_PATH for Dataset-JSON 1.1 compliance"
+            CORE_DP_ARGS=$(python dsjvalidate/dsjvalidate.py -f "$NDJSON_PATH")
             echo "Validation completed"
+
+            # Build up the argument string for CORE validation
+            CORE_DP_ARGS="$CORE_DP_ARGS -dp $VALIDATED_PATH"
       
             echo "Done with $file"
             echo ""
           done < filelist
+
+          echo "CORE_DP_ARGS=$CORE_DP_ARGS" >> $GITHUB_ENV
 
       - name: Download and extract CORE engine
         run: |
@@ -121,13 +127,17 @@ jobs:
           chmod +x core
           chmod -R 755 .
           chmod -R +r ./resources
-          ./core validate -s sdtmig -v 3-2 -p disabled -of JSON -dp ../data/ae.ndjson
+          ./core validate -s sdtmig -v 3-2 -p disabled -of JSON -o ../data/core-results $CORE_DP_ARGS
+        env:
+          CORE_DP_ARGS: ${{ env.CORE_DP_ARGS }}
     
-      - name: Upload NDJSON outputs
+      - name: Upload NDJSON outputs and CORE results
         uses: actions/upload-artifact@v4
         with:
           name: processed-dataset-json
-          path: ./data/*.ndjson
+          path: |
+            ./data/*.ndjson
+            ./data/core-results.json
 
       - name: Notify Slack of successful pipeline
         if: success() 
