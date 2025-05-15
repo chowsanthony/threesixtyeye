@@ -110,6 +110,19 @@ jobs:
             echo ""
           done < filelist
 
+      - name: Download and extract CORE engine
+        run: |
+          curl -L -o core.zip https://github.com/cdisc-org/cdisc-rules-engine/releases/download/v0.10.0/core-ubuntu-latest.zip
+          unzip core.zip -d core
+
+      - name: Validate NDJSON files
+        run: |
+          cd core
+          chmod +x core
+          chmod -R 755 .
+          chmod -R +r resources/
+          core validate -s sdtmig -v 3-2 -p disabled -of JSON -dp ./data/ae.ndjson
+    
       - name: Upload NDJSON outputs
         uses: actions/upload-artifact@v4
         with:
