@@ -128,3 +128,12 @@ jobs:
         with:
           name: processed-dataset-json
           path: ./data/*.ndjson
+
+      - name: Notify Slack of successful pipeline
+        if: success() 
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data '{"text":"✅ 360i pipeline completed successfully!"}' \
+            $SLACK_WEBHOOK_URL
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
