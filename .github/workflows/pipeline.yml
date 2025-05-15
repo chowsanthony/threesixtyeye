@@ -121,7 +121,7 @@ jobs:
           chmod +x core
           chmod -R 755 .
           chmod -R +r ./resources
-          core validate -s sdtmig -v 3-2 -p disabled -of JSON -dp ./data/ae.ndjson
+          ./core validate -s sdtmig -v 3-2 -p disabled -of JSON -dp ./data/ae.ndjson
     
       - name: Upload NDJSON outputs
         uses: actions/upload-artifact@v4
