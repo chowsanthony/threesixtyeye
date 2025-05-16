@@ -136,11 +136,38 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           GITHUB_RUN_ID: ${{ github.run_id }}
-    
+
+      - name: Notify Slack of CORE engine installation
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"⏬ Installing CORE CLI. (Job ID $GITHUB_RUN_ID)\"}" \
+            $SLACK_WEBHOOK_URL
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+  
       - name: Download and extract CORE engine
         run: |
           curl -L -o core.zip https://github.com/cdisc-org/cdisc-rules-engine/releases/download/v0.10.0/core-ubuntu-latest.zip
           unzip core.zip -d ./
+
+      - name: Notify Slack of CORE engine installation
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"🤘 CORE CLI installed. (Job ID $GITHUB_RUN_ID)\"}" \
+            $SLACK_WEBHOOK_URL
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+
+      - name: Notify Slack of CORE engine installation
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"🔎 Checking files using CDISC Open Rules. (Job ID $GITHUB_RUN_ID)\"}" \
+            $SLACK_WEBHOOK_URL
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
 
       - name: Validate NDJSON files
         run: |
