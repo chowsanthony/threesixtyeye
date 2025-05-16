@@ -104,17 +104,19 @@ jobs:
       
             # Step 3: Validate
             echo "Validating $NDJSON_PATH for Dataset-JSON 1.1 compliance"
-            CORE_DP_ARGS=$(python dsjvalidate/dsjvalidate.py -f "$NDJSON_PATH")
+            VALID_DSJ11_PATH=$(python dsjvalidate/dsjvalidate.py -f "$NDJSON_PATH")
             echo "Validation completed"
 
             # Build up the argument string for CORE validation
-            CORE_DP_ARGS="$CORE_DP_ARGS -dp $VALIDATED_PATH"
+            CORE_DP_ARGS="$CORE_DP_ARGS -dp $VALID_DSJ11_PATH"
       
             echo "Done with $file"
             echo ""
           done < filelist
 
           echo "CORE_DP_ARGS=$CORE_DP_ARGS" >> $GITHUB_ENV
+
+          echo "Final -dp arguments for CORE: $CORE_DP_ARGS"
 
       - name: Download and extract CORE engine
         run: |
