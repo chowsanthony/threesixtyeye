@@ -1,0 +1,243 @@
+name: Demonstrate 360i Pipeline
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    env:
+      ACCESS_TOKEN: ${{ secrets.THREESIXTYEYE_TOKEN }}
+
+    steps:
+      - name: Notify Slack of pipeline start
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"🚀 360i pipeline has started. (Job ID $GITHUB_RUN_ID)\"}" \
+            $SLACK_WEBHOOK_URL
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt || true
+
+      - name: Create config.ini with token
+        run: |
+          echo "[RawDataSource]" >> ./config/config.ini
+          echo "gh_token = $ACCESS_TOKEN" >> ./config/config.ini
+          echo "gh_user_name=alidootson" >> ./config/config.ini
+          echo "gh_repo_name=UpdatedCDISCPilotData" >> ./config/config.ini
+          echo "gh_repo_path=UpdatedCDISCPilotData/CDASH/datasetjson/" >> ./config/config.ini
+
+          echo "" >> ./config/config.ini
+          echo "[Study]" >> ./config/config.ini
+          echo "study_oid=360i-lzzt" >> ./config/config.ini
+
+          echo "" >> ./config/config.ini
+          echo "[Data]" >> ./config/config.ini
+          echo "data_path=./data" >> ./config/config.ini
+
+          echo "" >> ./config/config.ini
+          echo "[SourceSystem]" >> ./config/config.ini
+          echo "name=360i" >> ./config/config.ini
+          echo "version=0.0.1" >> ./config/config.ini
+
+          echo "" >> ./config/config.ini
+          echo "[LinkML]" >> ./config/config.ini
+          echo "ndjson_linkml_yaml=./dsjvalidate/dataset-ndjson.yaml" >> ./config/config.ini
+          
+          echo "" >> ./config/config.ini
+          echo "[Commands]" >> ./config/config.ini
+          echo "python=python3" >> ./config/config.ini
+
+      - name: Print config.ini (token masked)
+        run: |
+          echo "Contents of config.ini:"
+          cat ./config/config.ini
+
+      - name: Extract API URL from config.ini
+        id: extract_config
+        run: |
+          USERNAME=$(grep '^gh_user_name' ./config/config.ini | cut -d '=' -f2 | xargs)
+          REPONAME=$(grep '^gh_repo_name' ./config/config.ini | cut -d '=' -f2 | xargs)
+          REPOPATH=$(grep '^gh_repo_path' ./config/config.ini | cut -d '=' -f2 | xargs)
+          API_URL="https://api.github.com/repos/$USERNAME/$REPONAME/contents/$REPOPATH"
+          echo "API_URL=$API_URL" >> $GITHUB_ENV
+
+      - name: Get list of JSON files from GitHub API
+        run: |
+          echo "Fetching file list from $API_URL"
+          
+          HTTP_STATUS=$(curl -sL -o api_response.json -w "%{http_code}" \
+            -H "Authorization: token $ACCESS_TOKEN" "$API_URL")
+      
+          echo "GitHub API returned status: $HTTP_STATUS"
+      
+          echo "Extracting .json filenames..."
+          jq -r '.[] | select(.type == "file" and has("name") and (.name | endswith(".json"))) | .name' api_response.json > filelist
+      
+          echo "Filelist:"
+          cat filelist
+
+      - name: Process Dataset-JSON files from filelist
+        run: |
+          # SKIP_LIST="cm.json lb.json qs.json vs.json"
+          SKIP_LIST=""
+          CORE_DP_ARGS=""
+      
+          while read file; do
+            if echo "$SKIP_LIST" | grep -qw "$file"; then
+              echo "Skipping $file (in skip list)"
+              continue
+            fi
+      
+            echo "Processing $file"
+
+            # Step 1: Retrieve from GitHub
+            INPUT_PATH=$(python github2dsj/github2dsj.py "$file" --path ./data)
+            echo "Downloaded: $INPUT_PATH"
+      
+            # Step 2: Upversion
+            NDJSON_PATH=$(python dsjupversion/dsjupversion.py -f "$INPUT_PATH")
+            echo "Upversioned: $NDJSON_PATH"
+      
+            # Step 3: Validate
+            echo "Validating $NDJSON_PATH for Dataset-JSON 1.1 compliance"
+            VALID_DSJ11_PATH=$(python dsjvalidate/dsjvalidate.py -f "$NDJSON_PATH")
+            echo "Validation completed"
+
+            # Build up the argument string for CORE validation
+            CORE_DP_ARGS="$CORE_DP_ARGS -dp $VALID_DSJ11_PATH"
+      
+            echo "Done with $file"
+            echo ""
+          done < filelist
+
+          echo "CORE_DP_ARGS=$CORE_DP_ARGS" >> $GITHUB_ENV
+
+          echo "Final -dp arguments for CORE: $CORE_DP_ARGS"
+
+      - name: Notify Slack of Dataset-JOSN file process successfully
+        if: success()
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"📁 Dataset-JSON files downloaded and verfied (Job ID $GITHUB_RUN_ID)\"}" \
+            $SLACK_WEBHOOK_URL
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+
+      - name: Notify Slack of CORE engine installation
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"⏬ Installing CORE CLI. (Job ID $GITHUB_RUN_ID)\"}" \
+            $SLACK_WEBHOOK_URL
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+  
+      - name: Download and extract CORE engine
+        run: |
+          curl -L -o core.zip https://github.com/cdisc-org/cdisc-rules-engine/releases/download/v0.10.0/core-ubuntu-latest.zip
+          unzip core.zip -d ./
+
+      - name: Notify Slack of CORE engine installation
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"🤘 CORE CLI installed. (Job ID $GITHUB_RUN_ID)\"}" \
+            $SLACK_WEBHOOK_URL
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+
+      - name: Notify Slack of CORE engine installation
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"🔎 Checking files using CDISC Open Rules. (Job ID $GITHUB_RUN_ID)\"}" \
+            $SLACK_WEBHOOK_URL
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+
+      - name: Validate NDJSON files
+        run: |
+          cd core
+          chmod +x core
+          chmod -R 755 .
+          chmod -R +r ./resources
+          ./core validate -s sdtmig -v 3-2 -p disabled -of JSON -o ../data/core-results $CORE_DP_ARGS
+        env:
+          CORE_DP_ARGS: ${{ env.CORE_DP_ARGS }}
+    
+      - name: Upload NDJSON outputs and CORE results
+        uses: actions/upload-artifact@v4
+        with:
+          name: processed-dataset-json
+          path: |
+            ./data/*.ndjson
+            ./data/core-results.json
+
+      - name: Notify Slack of successful pipeline
+        if: success()
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{
+              \"text\": \"✅ 360i pipeline completed successfully!\",
+              \"attachments\": [
+                {
+                  \"color\": \"#2eb886\",
+                  \"fields\": [
+                    { \"title\": \"Job ID\", \"value\": \"$GITHUB_RUN_ID\", \"short\": true },
+                    { \"title\": \"Repo\", \"value\": \"$GITHUB_REPOSITORY\", \"short\": true },
+                    { \"title\": \"Branch\", \"value\": \"$GITHUB_REF_NAME\", \"short\": true },
+                    { \"title\": \"Actor\", \"value\": \"$GITHUB_ACTOR\", \"short\": true },
+                    { \"title\": \"Run\", \"value\": \"<https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID|View Run Details>\", \"short\": false }
+                  ]
+                }
+              ]
+            }" \
+            $SLACK_WEBHOOK_URL
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_ACTOR: ${{ github.actor }}
+
+      - name: Notify Slack of pipeline failure
+        if: failure()
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{
+              \"text\": \"❌ 360i pipeline failed.\",
+              \"attachments\": [
+                {
+                  \"color\": \"#e01e5a\",
+                  \"fields\": [
+                    { \"title\": \"Job ID\", \"value\": \"$GITHUB_RUN_ID\", \"short\": true },
+                    { \"title\": \"Repo\", \"value\": \"$GITHUB_REPOSITORY\", \"short\": true },
+                    { \"title\": \"Branch\", \"value\": \"$GITHUB_REF_NAME\", \"short\": true },
+                    { \"title\": \"Actor\", \"value\": \"$GITHUB_ACTOR\", \"short\": true },
+                    { \"title\": \"Run\", \"value\": \"<https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID|View Run Details>\", \"short\": false }
+                  ]
+                }
+              ]
+            }" \
+            $SLACK_WEBHOOK_URL
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_ACTOR: ${{ github.actor }}
