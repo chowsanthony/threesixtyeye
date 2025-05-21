@@ -75,6 +75,47 @@ jobs:
           API_URL="https://api.github.com/repos/$USERNAME/$REPONAME/contents/$REPOPATH"
           echo "API_URL=$API_URL" >> $GITHUB_ENV
 
+      - name: Notify Slack start of CORE engine installation
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"⏬ Installing CORE CLI. (Job ID $GITHUB_RUN_ID)\"}" \
+            $SLACK_WEBHOOK_URL
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+  
+      - name: Download and extract CORE engine
+        run: |
+          curl -L -o core.zip https://github.com/cdisc-org/cdisc-rules-engine/releases/download/v0.10.0/core-ubuntu-latest.zip
+          unzip core.zip -d ./
+
+      - name: Notify Slack end of CORE engine installation
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"🤘 CORE CLI installed. (Job ID $GITHUB_RUN_ID)\"}" \
+            $SLACK_WEBHOOK_URL
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+
+      - name: Notify Slack of CORE execution against USDM JSON
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"🔎 Running CDISC Open Rules against USDM JSON. (Job ID $GITHUB_RUN_ID)\"}" \
+            $SLACK_WEBHOOK_URL
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+
+      - name: Validate USDM JSON using CORE CLI
+        run: |
+          cd core
+          chmod +x core
+          chmod -R 755 .
+          chmod -R +r ./resources
+          # Only running a few DDF rules for demonstration purposes
+          ./core validate -s usdm -v 3-0 -p disabled -of JSON -o ../data/core-usdm-results -r CORE-000680 -r CORE-000681 -r CORE-000684 -dp ../sdw2usdm/usdm.json
+          
       - name: Get list of JSON files from GitHub API
         run: |
           echo "Fetching file list from $API_URL"
@@ -138,30 +179,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           GITHUB_RUN_ID: ${{ github.run_id }}
 
-      - name: Notify Slack of CORE engine installation
-        run: |
-          curl -X POST -H 'Content-type: application/json' \
-            --data "{\"text\":\"⏬ Installing CORE CLI. (Job ID $GITHUB_RUN_ID)\"}" \
-            $SLACK_WEBHOOK_URL
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          GITHUB_RUN_ID: ${{ github.run_id }}
-  
-      - name: Download and extract CORE engine
-        run: |
-          curl -L -o core.zip https://github.com/cdisc-org/cdisc-rules-engine/releases/download/v0.10.0/core-ubuntu-latest.zip
-          unzip core.zip -d ./
-
-      - name: Notify Slack of CORE engine installation
-        run: |
-          curl -X POST -H 'Content-type: application/json' \
-            --data "{\"text\":\"🤘 CORE CLI installed. (Job ID $GITHUB_RUN_ID)\"}" \
-            $SLACK_WEBHOOK_URL
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          GITHUB_RUN_ID: ${{ github.run_id }}
-
-      - name: Notify Slack of CORE engine installation
+      - name: Notify Slack of CORE execution against SDTM data
         run: |
           curl -X POST -H 'Content-type: application/json' \
             --data "{\"text\":\"🔎 Checking files using CDISC Open Rules. (Job ID $GITHUB_RUN_ID)\"}" \
@@ -170,13 +188,13 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           GITHUB_RUN_ID: ${{ github.run_id }}
 
-      - name: Validate NDJSON files
+      - name: Validate NDJSON files using CORE CLI
         run: |
           cd core
           chmod +x core
           chmod -R 755 .
           chmod -R +r ./resources
-          ./core validate -s sdtmig -v 3-2 -p disabled -of JSON -o ../data/core-results $CORE_DP_ARGS
+          ./core validate -s sdtmig -v 3-2 -p disabled -of JSON -o ../data/core-sdtm-results $CORE_DP_ARGS
         env:
           CORE_DP_ARGS: ${{ env.CORE_DP_ARGS }}
     
@@ -186,7 +204,8 @@ jobs:
           name: processed-dataset-json
           path: |
             ./data/*.ndjson
-            ./data/core-results.json
+            ./data/core-usdm-results.json
+            ./data/core-sdtm-results.json
 
       - name: Notify Slack of successful pipeline
         if: success()
